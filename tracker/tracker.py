@@ -1,82 +1,7 @@
 import numpy as np
 import cv2
-import torch
-import rosbag
-from sensor_msgs.msg import Image
-from cv_bridge import CvBridge, CvBridgeError
 from scipy.optimize import linear_sum_assignment
-import time
-import rospkg
-import sys
-
-
-class KalmanFilter():
-    def __init__(self, dt, state, state_std, meas_std, color, id):
-        self.dt = dt
-        self.id = id
-
-        self.last_seen = 0
-
-        self.display = False
-
-        self.age = 0
-        self.temp = True
-
-        self.color = color
-
-        # Fix initial state
-        self.x = np.array([state[0], state[1], 0, 0, state[2], state[3]])
-
-        # State matrix
-        self.A = np.array([[1, 0, self.dt, 0, 0, 0],
-                           [0, 1, 0, self.dt, 0, 0],
-                           [0, 0, 1, 0, 0, 0],
-                           [0, 0, 0, 1, 0, 0],
-                           [0, 0, 0, 0, 1, 0],
-                           [0, 0, 0, 0, 0, 1]])
-
-        # No control matrix
-        # self.B = 0
-        # self.u = 0
-
-        # Process noise (state prediction)
-        self.Q = np.array([[(self.dt**4)/4, 0, (self.dt**3)/2, 0, 0, 0],
-                           [0, (self.dt**4)/4, 0, (self.dt**3)/2, 0, 0],
-                           [(self.dt**3)/2, 0, self.dt**2, 0, 0, 0],
-                           [0, (self.dt**3)/2, 0, self.dt**2, 0, 0],
-                           [0, 0, 0, 0, 1, 0],
-                           [0, 0, 0, 0, 0, 1]]) * state_std**2
-
-        # State to measurements
-        self.H = np.array([[1, 0, 0, 0, 0, 0],
-                           [0, 1, 0, 0, 0, 0],
-                           [0, 0, 0, 0, 1, 0],
-                           [0, 0, 0, 0, 0, 1]])
-
-        # Measurement noise
-        self.R = np.array([[meas_std**2, 0, 0, 0],
-                           [0, meas_std**2, 0, 0],
-                           [0, 0, meas_std**2, 0],
-                           [0, 0, 0, meas_std**2]])
-        # State covariance matrix
-        self.P = np.array(np.eye(self.A.shape[1]))
-
-    def predict(self, A=np.zeros((2, 3))):
-        # self.x = np.dot(self.A, self.x)
-        # self.x[0:2] += [A[0, 2], A[1, 2]]
-        self.x[0] = A[0, 0]*self.x[0] + A[0, 1]*self.x[1] + A[0, 2]
-        self.x[1] = A[1, 0]*self.x[0] + A[1, 1]*self.x[1] + A[1, 2]
-        self.P = np.dot(np.dot(self.A, self.P), self.A.T) + self.Q
-        return self.x
-
-    def update(self, z):
-        K = np.dot(np.dot(self.P, self.H.T), np.linalg.inv(np.dot(self.H, np.dot(self.P, self.H.T)) + self.R))
-        self.x = np.round(self.x + np.dot(K, (z - np.dot(self.H, self.x))))
-        self.P = np.dot((np.eye(self.H.shape[1]) - np.dot(K, self.H)), self.P)
-        return self.x
-
-    def get_state(self):
-        return (self.x[0], self.x[1], self.x[4], self.x[5])
+from tracker.kalmanFilter import KalmanFilter
 
 
 def convert_bbox_to_meas(det):
@@ -250,9 +175,9 @@ class Tracker():
             track.predict(motion)
             # TO DISPLAY PREDICTION PHASE
             # if track.display:
-            bbox = convert_meas_to_bbox(track.get_state())
-            cv2.rectangle(image, (int(bbox[0]), int(bbox[1])), (int(bbox[2]), int(bbox[3])), (0, 255, 0), 2)
-            cv2.putText(image, str(track.id), (int(bbox[0]), int(bbox[3])), cv2.FONT_HERSHEY_COMPLEX, 2, (0, 255, 0), 2)
+            # bbox = convert_meas_to_bbox(track.get_state())
+            # cv2.rectangle(image, (int(bbox[0]), int(bbox[1])), (int(bbox[2]), int(bbox[3])), (0, 255, 0), 2)
+            # cv2.putText(image, str(track.id), (int(bbox[0]), int(bbox[3])), cv2.FONT_HERSHEY_COMPLEX, 2, (0, 255, 0), 2)
 
         # ASSOCIATION PHASE ######
         # Associate predicted tracks with measurements, update associated ones, generates new ones and only predict not associated ones for x frames
@@ -287,56 +212,3 @@ class Tracker():
             if track.last_seen == 10:
                 self.remove_track(track)
                 # print("Removed track", track.id)
-
-
-if __name__ == "__main__":
-    rospack = rospkg.RosPack()
-    cwd_path = rospack.get_path('ros_canopies')
-    sys.path.append(cwd_path)
-    # path='./Weights/olives_pears.pt'
-    path = './weights/best.pt'
-    model = torch.hub.load(cwd_path + '/yolov5', 'custom', path=path, source="local")
-    model.conf = 0.4
-    model.iou = 0.3
-    # bag = rosbag.Bag('./rosbags/test1.bag')
-    bag = rosbag.Bag('/home/leonardo/Documents/rosbags/Bags_test_set/20220901_142743-001.bag')
-    # bag = rosbag.Bag('/home/leonardo/Documents/rosbags/Bags_test_set/20220901_142936-002.bag')
-    # bag = rosbag.Bag('/home/leonardo/Documents/rosbags/Bags_test_set/20220808_122420-003.bag')
-
-    # bag = rosbag.Bag('/home/leonardo/Documents/rosbags/Others/aligned_depth.bag')
-
-    # image_topic = "/Aligned_color"
-    # image_topic = "/camera/color/image_raw"
-    image_topic = "/device_0/sensor_1/Color_0/image/data"
-    tracker = Tracker(features="optical_flow")
-    image = cv2.namedWindow("Image", cv2.WINDOW_NORMAL)
-
-    for i, (topic, msg, t) in enumerate(bag.read_messages(topics=[image_topic])):
-        print("FRAME NUMERO", i)
-        image = CvBridge().imgmsg_to_cv2(msg, "passthrough")
-        gray_image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-        pred = model(cv2.cvtColor(image, cv2.COLOR_BGR2GRAY), size=1280)
-        start = time.time()
-        if i == 0:
-            for bbox in pred.xyxy[0]:
-                prev_image = gray_image
-                # Generate one tracker for each detected bounding box
-                tracker.add_track(1, convert_bbox_to_meas(bbox.cpu().detach().numpy()), 0.1, 0.005)
-        else:
-            motion = tracker.camera_motion_computation(prev_image, gray_image)
-            tracker.update_tracks(pred.xyxy[0].cpu().detach().numpy(), motion)
-
-            prev_image = gray_image.copy()
-        for track in tracker.tracks:
-            if track.display:
-                bbox = convert_meas_to_bbox(track.get_state())
-                cv2.rectangle(image, (int(bbox[0]), int(bbox[1])), (int(bbox[2]), int(bbox[3])), track.color, 2)
-                cv2.putText(image, str(track.id), (int(bbox[0]), int(bbox[3])), cv2.FONT_HERSHEY_COMPLEX, 2, track.color, 2)
-        print("TEMPO", time.time()-start)
-
-        image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-        cv2.imshow("Image", image)
-        k = cv2.waitKey(0)
-        if k == 27:
-            cv2.destroyAllWindows()
-            break
