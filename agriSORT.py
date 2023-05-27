@@ -1,9 +1,8 @@
-import numpy as np
 import cv2
 import torch
 import rosbag
-from sensor_msgs.msg import Image
-from cv_bridge import CvBridge, CvBridgeError
+import argparse
+from cv_bridge import CvBridge
 from scipy.optimize import linear_sum_assignment
 import time
 import rospkg
@@ -11,13 +10,22 @@ import sys
 from tracker.tracker import Tracker, convert_bbox_to_meas, convert_meas_to_bbox
 
 
-if __name__ == "__main__":
-    rospack = rospkg.RosPack()
-    cwd_path = rospack.get_path('ros_canopies')
-    sys.path.append(cwd_path)
+def parse_opt():
+    # Create an ArgumentParser object
+    parser = argparse.ArgumentParser(description='Example script to demonstrate command line options.')
+    # Add options
+    parser.add_argument('-s', '--source', type=str, default='data/Grapes_001/', help='Source of files (dir, file, video, ...)')
+    parser.add_argument('-o', '--output', type=str, default='runs/', help='Output file path')
+    parser.add_argument('-w', '--weights', type=str, default='./weights/best.pt', help='Weights of YOLOv5 detector')
+    parser.add_argument('--conf-thres', type=float, default=0.4, help='confidence threshold')
+    parser.add_argument('--iou-thres', type=float, default=0.3, help='NMS IoU threshold')
+    parser.add_argument('-v', '--visualize', type=bool, default=True, help='Enable or disable real-time visualization')
+
+
+def main():
     # path='./Weights/olives_pears.pt'
     path = './weights/best.pt'
-    model = torch.hub.load(cwd_path + '/yolov5', 'custom', path=path, source="local")
+    model = torch.hub.load('/yolov5', 'custom', path=path, source="local")
     model.conf = 0.4
     model.iou = 0.3
     # bag = rosbag.Bag('./rosbags/test1.bag')
@@ -62,3 +70,7 @@ if __name__ == "__main__":
         if k == 27:
             cv2.destroyAllWindows()
             break
+
+
+if __name__ == "__main__":
+    opt = parse_opt()
