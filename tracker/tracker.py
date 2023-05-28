@@ -4,7 +4,15 @@ from scipy.optimize import linear_sum_assignment
 from tracker.kalmanFilter import KalmanFilter
 
 
-def convert_bbox_to_meas(det):
+def meas_to_mot(meas):
+    width = meas[4]
+    height = meas[5]
+    x_left = meas[0] - (width/2)
+    y_top = meas[1] - (height/2)
+    return (x_left, y_top, width, height)
+
+
+def bbox_to_meas(det):
     height = int(det[3] - det[1])
     width = int(det[2] - det[0])
     x_c = int(det[0] + (width/2))
@@ -12,7 +20,7 @@ def convert_bbox_to_meas(det):
     return (x_c, y_c, width, height)
 
 
-def convert_meas_to_bbox(meas):
+def meas_to_bbox(meas):
     x1 = int(meas[0] - (meas[2]/2))
     y1 = int(meas[1] - (meas[3]/2))
     x2 = int(meas[0] + (meas[2]/2))
@@ -23,7 +31,7 @@ def convert_meas_to_bbox(meas):
 def compute_iou(tracks, measurements):
     iou_matrix = np.zeros((len(measurements), len(tracks)))
     for i, track in enumerate(tracks):
-        track_bbox = convert_meas_to_bbox(track.get_state())
+        track_bbox = meas_to_bbox(track.get_state())
         for j, meas in enumerate(measurements):
             xx1 = np.maximum(track_bbox[0], meas[0])
             yy1 = np.maximum(track_bbox[1], meas[1])
@@ -187,12 +195,12 @@ class Tracker():
         # UPDATE PHASE ######
         for i, j in zip(ass_tracks, ass_meas):
             # print("Track {} associated to measurement {}".format(self.tracks[i].id, j))
-            self.tracks[i].update(convert_bbox_to_meas(detections[j]))
+            self.tracks[i].update(bbox_to_meas(detections[j]))
             self.tracks[i].last_seen = 0
             self.tracks[i].display = True
 
         for i in non_ass_meas:
-            self.add_track(1, convert_bbox_to_meas(detections[i]), 0.1, 0.005)
+            self.add_track(1, bbox_to_meas(detections[i]), 0.1, 0.001)
 
         for i in non_ass_tracks:
             self.tracks[i].last_seen += 1
@@ -200,7 +208,7 @@ class Tracker():
         for i in ass_tracks:
             if self.tracks[i].temp:
                 self.tracks[i].age += 1
-            if self.tracks[i].age > 5:
+            if self.tracks[i].age > 2:
                 self.tracks[i].temp = False
 
         for track in reversed(self.tracks):
