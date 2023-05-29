@@ -1,5 +1,6 @@
 import numpy as np
 
+
 class KalmanFilter():
     def __init__(self, dt, state, state_std, meas_std, color, id):
         self.dt = dt

@@ -5,6 +5,31 @@ import os
 import sys
 
 
+def create_experiment_folder(path='runs', prefix='track'):
+    # If path doesn't exists: create it
+    if not os.path.isdir(path):
+        os.mkdir(path)
+
+    # Find all existing folders with the prefix
+    existing_folders = []
+    for folder in os.listdir(path):
+        if folder.startswith(prefix):
+            existing_folders.append(folder)
+
+    # If folders already exist
+    if existing_folders:
+        # Sort the folders by name
+        existing_folders.sort()
+        # Get the last number and add 1
+        number = int(existing_folders[-1][len(prefix):]) + 1
+        folder_path = os.path.join(path, prefix + str(number))
+        os.mkdir(folder_path)
+    else:
+        folder_path = os.path.join(path, prefix + '1')
+        os.mkdir(folder_path)
+    return folder_path
+
+
 class DataLoader():
     def __init__(self, path):
         self.path = path
@@ -17,7 +42,7 @@ class DataLoader():
     def __iter__(self):
         self.index = 0
         return self
-    
+
     def __next__(self):
         if self.mode == "Video":
             while True:
@@ -33,7 +58,8 @@ class DataLoader():
                 raise StopIteration
             else:
                 # Construct the complete file path with current index
-                file_path = os.path.join(self.path, self.images_names_list[self.index])
+                file_path = os.path.join(self.path,
+                                         self.images_names_list[self.index])
                 # Load the image using cv2
                 frame = cv2.imread(file_path)
                 self.index += 1
@@ -45,6 +71,8 @@ class DataLoader():
         elif mimetypes.guess_type(path)[0].startswith('video'):
             return "Video"
         else:
-            print("Invalid input type. Input should be eithr a video or a folder containing images.")
-            print("Input type", mimetypes.guess_type(path)[0], "is not supported. Refer to documentation.")
+            print("Invalid input type. Input should be eithr a video or a\
+                   folder containing images.")
+            print("Input type", mimetypes.guess_type(path)[0], "is not\
+                   supported. Refer to documentation.")
             sys.exit()
