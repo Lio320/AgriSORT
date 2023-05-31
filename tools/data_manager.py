@@ -19,7 +19,7 @@ def create_experiment_folder(path='runs', prefix='track'):
     # If folders already exist
     if existing_folders:
         # Sort the folders by name
-        existing_folders.sort()
+        existing_folders = sorted(existing_folders, key=lambda x: int(x.split(prefix)[-1]))
         # Get the last number and add 1
         number = int(existing_folders[-1][len(prefix):]) + 1
         folder_path = os.path.join(path, prefix + str(number))
@@ -36,8 +36,10 @@ class DataLoader():
         self.mode = self.check_path_type(self.path)
         if self.mode == "Folder":
             self.images_names_list = sorted(os.listdir(self.path))
+            self.len = int(len(self.images_names_list))
         elif self.mode == "Video":
             self.video_capture = cv2.VideoCapture(self.path)
+            self.len = int(self.video_capture.get(cv2.CAP_PROP_FRAME_COUNT))
 
     def __iter__(self):
         self.index = 0

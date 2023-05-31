@@ -10,11 +10,11 @@ def parse_opt():
 
 
 def main(opt):
-    bag_name = "20220822_093434.bag"
+    bag_name = "20220822_094153.bag"
     path = "./tools/" + bag_name
     image_topic = "/device_0/sensor_1/Color_0/image/data"
     bag = rosbag.Bag(path)
-    save_path = "./tools/20220822_093434/"
+    save_path = "./tools/20220822_094153/"
     for i, (topic, msg, t) in enumerate(bag.read_messages(topics=[image_topic])):
         # if not i % 25:
         print("FRAME NUMERO", i)
