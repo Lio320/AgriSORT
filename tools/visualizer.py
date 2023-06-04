@@ -9,8 +9,7 @@ class Visualizer():
 
     def display_image(self, image, mode=0):
         cv2.imshow("AgriSORT", image)
-        cv2.waitKey(mode)
-        k = cv2.waitKey(0)
+        k = cv2.waitKey(mode)
         if k == 27:
             cv2.destroyAllWindows()
             sys.exit()
