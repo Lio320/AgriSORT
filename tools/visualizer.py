@@ -5,7 +5,8 @@ import sys
 
 class Visualizer():
     def __init__(self) -> None:
-        self.window = cv2.namedWindow("AgriSORT", cv2.WINDOW_NORMAL)
+        # self.window = cv2.namedWindow("AgriSORT", cv2.WINDOW_AUTOSIZE)
+        pass
 
     def display_image(self, image, mode=0):
         cv2.imshow("AgriSORT", image)

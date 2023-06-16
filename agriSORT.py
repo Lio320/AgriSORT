@@ -17,6 +17,7 @@ def parse_opt():
     parser.add_argument('--conf-thres', type=float, default=0.3, help='confidence threshold')
     parser.add_argument('--iou-thres', type=float, default=0.5, help='NMS IoU threshold')
     parser.add_argument('--features', type=str, default="optical_flow", help='Features for camera motion compensation (ORB, optical flow, ...)')
+    parser.add_argument('--transform', type=str, default="affine", help='Tranformation for estimation of camera motion')
     parser.add_argument('-v', '--visualize', type=bool, default=True, help='Enable or disable real-time visualization')
     opt = parser.parse_args()
     return opt
@@ -28,10 +29,11 @@ def main(opt):
     model.iou = opt.iou_thres
 
     # Initialize tracker
-    tracker = Tracker(features=opt.features)
+    tracker = Tracker(features=opt.features, transform=opt.transform)
 
     # If visualizer, initialize visualizer
     if opt.visualize:
+        cv2.namedWindow("AgriSORT", cv2.WINDOW_NORMAL)
         visualizer = Visualizer()
 
     # Create folder to save results
@@ -67,7 +69,7 @@ def main(opt):
                     temp = str(mot[0]) + ', ' + str(mot[1]) + ', ' + str(mot[2]) + ', ' + str(mot[3])
                     f.write(str(i) + ', ' + str(track.id) + ', ' + temp + ', -1, -1, -1, -1' + '\n')
             if visualizer:
-                visualizer.display_image(frame)
+                visualizer.display_image(frame, 0)
             # Terminal output
             print("Frame {}/{} || Detections {} ({:.2f} ms) || Camera Correction ({:.2f} ms) || Tracking {} ({:.2f} ms)".format(
                 i, dataset.len, int(len(pred.xyxy[0])), d_time, c_time, len(tracker.tracks), t_time))
