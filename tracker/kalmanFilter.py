@@ -2,7 +2,7 @@ import numpy as np
 
 
 class KalmanFilter():
-    def __init__(self, dt, state, state_std, meas_std, color, id):
+    def __init__(self, dt, state, state_std, meas_std, color, id, transform):
         self.dt = dt
         self.id = id
 
@@ -14,6 +14,7 @@ class KalmanFilter():
         self.temp = True
 
         self.color = color
+        self.transform = transform
 
         # Fix initial state
         self.x = np.array([state[0], state[1], 0, 0, state[2], state[3]])
@@ -55,9 +56,28 @@ class KalmanFilter():
     def predict(self, A=np.zeros((2, 3))):
         # self.x = np.dot(self.A, self.x)
         # self.x[0:2] += [A[0, 2], A[1, 2]]
-        self.x[0] = A[0, 0]*self.x[0] + A[0, 1]*self.x[1] + A[0, 2]
-        self.x[1] = A[1, 0]*self.x[0] + A[1, 1]*self.x[1] + A[1, 2]
-        self.P = np.dot(np.dot(self.A, self.P), self.A.T) + self.Q
+        if self.transform == 'affine':
+            self.x[0] = A[0, 0]*self.x[0] + A[0, 1]*self.x[1] + A[0, 2]
+            self.x[1] = A[1, 0]*self.x[0] + A[1, 1]*self.x[1] + A[1, 2]
+            self.P = np.dot(np.dot(self.A, self.P), self.A.T) + self.Q
+        elif self.transform == 'homography':
+            # Convert the pixel coordinates to homogeneous coordinates
+            hom = np.array([self.x[0], self.x[1], 1])
+
+            # Multiply the homogeneous coordinates by the homography matrix to obtain the homogeneous coordinates in the second image
+            hom = np.dot(A, hom)
+
+            # Convert the homogeneous coordinates back to pixel coordinates
+            x2, y2, w = hom
+
+            # Convert back to euclidean coordinates and round to integer
+            self.x[0] = int(round(x2 / w))
+            self.x[1] = int(round(y2 / w))
+
+            self.P = np.dot(np.dot(self.A, self.P), self.A.T) + self.Q
+
+            # Print the pixel coordinates of the projected point in the second image
+            print(self.x)
         return self.x
 
     def update(self, z):

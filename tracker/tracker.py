@@ -48,11 +48,12 @@ def compute_iou(tracks, measurements):
 
 
 class Tracker():
-    def __init__(self, features="None"):
+    def __init__(self, features="optical_flow", transform='affine'):
         self.tracks = []
         self.prev_id = 0
         self.color_id = 0
         self.features = features
+        self.transform = transform
         if self.features == "orb":
             # Initialize the ORB detector algorithm
             self.orb = cv2.ORB_create()
@@ -68,7 +69,7 @@ class Tracker():
     def add_track(self, dt, state, state_std, meas_std):
         # The color is sequential
         color, self.color_id = self.get_colors(self.color_id)
-        self.tracks.append(KalmanFilter(dt, state, state_std, meas_std, color, self.prev_id))
+        self.tracks.append(KalmanFilter(dt, state, state_std, meas_std, color, self.prev_id, self.transform))
         self.prev_id += 1
 
     def remove_track(self, track):
@@ -107,7 +108,6 @@ class Tracker():
             matches = matches[:50]
             prev_pts = np.float32([prevKeypoints[m.queryIdx].pt for m in matches]).reshape(-1, 1, 2)
             curr_pts = np.float32([currKeypoints[m.trainIdx].pt for m in matches]).reshape(-1, 1, 2)
-            A, inliers = cv2.estimateAffine2D(prev_pts, curr_pts, method=cv2.RANSAC, ransacReprojThreshold=5.0)
         if self.features == "optical_flow":
             # Define the features to track using the Shi-Tomasi corner detector
             prev_pts = cv2.goodFeaturesToTrack(prev_img, maxCorners=200, qualityLevel=0.01, minDistance=10)
@@ -116,9 +116,14 @@ class Tracker():
             # Select only the points that have a good optical flow estimation
             prev_pts = prev_pts[status == 1]
             curr_pts = curr_pts[status == 1]
+        if self.transform == 'affine':
             # Estimate the affine transformation matrix
-            A, inliers = cv2.estimateAffine2D(prev_pts, curr_pts, method=cv2.RANSAC, ransacReprojThreshold=5.0)
-        return A
+            A, _ = cv2.estimateAffine2D(prev_pts, curr_pts, method=cv2.RANSAC, ransacReprojThreshold=5.0)
+            return A
+        elif self.transform == 'homography':
+            # Estimate the homography
+            H, _ = cv2.findHomography(prev_pts, curr_pts, method=cv2.RANSAC, ransacReprojThreshold=5.0)
+            return H
 
     def ransac(kp1, kp2, good, mp1, mp2, MIN_MATCH_COUNT=2, inlier_threshold=10.0):
         pass
