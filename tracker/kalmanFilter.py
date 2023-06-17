@@ -17,48 +17,46 @@ class KalmanFilter():
         self.transform = transform
 
         # Fix initial state
-        self.x = np.array([state[0], state[1], 0, 0, state[2], state[3]])
+        self.x = np.array([state[0], state[1], state[2], state[3]])
 
         # State matrix
-        self.A = np.array([[1, 0, self.dt, 0, 0, 0],
-                           [0, 1, 0, self.dt, 0, 0],
-                           [0, 0, 1, 0, 0, 0],
-                           [0, 0, 0, 1, 0, 0],
-                           [0, 0, 0, 0, 1, 0],
-                           [0, 0, 0, 0, 0, 1]])
-
-        # No control matrix
-        # self.B = 0
-        # self.u = 0
+        self.A = np.eye(4)
 
         # Process noise (state prediction)
-        self.Q = np.array([[(self.dt**4)/4, 0, (self.dt**3)/2, 0, 0, 0],
-                           [0, (self.dt**4)/4, 0, (self.dt**3)/2, 0, 0],
-                           [(self.dt**3)/2, 0, self.dt**2, 0, 0, 0],
-                           [0, (self.dt**3)/2, 0, self.dt**2, 0, 0],
-                           [0, 0, 0, 0, 1, 0],
-                           [0, 0, 0, 0, 0, 1]]) * state_std**2
+        self.Q = np.eye(4) * state_std**2
 
         # State to measurements
-        self.H = np.array([[1, 0, 0, 0, 0, 0],
-                           [0, 1, 0, 0, 0, 0],
-                           [0, 0, 0, 0, 1, 0],
-                           [0, 0, 0, 0, 0, 1]])
+        self.H = np.eye(4)
 
         # Measurement noise
-        self.R = np.array([[meas_std**2, 0, 0, 0],
-                           [0, meas_std**2, 0, 0],
-                           [0, 0, meas_std**2, 0],
-                           [0, 0, 0, meas_std**2]])
+        self.R = np.eye(4) * meas_std**2
         # State covariance matrix
-        self.P = np.array(np.eye(self.A.shape[1]))
+        self.P = np.eye(self.A.shape[1])
 
     def predict(self, A=np.zeros((2, 3))):
         # self.x = np.dot(self.A, self.x)
         # self.x[0:2] += [A[0, 2], A[1, 2]]
         if self.transform == 'affine':
+            print("OLD WIDTH/HEIGHT: {}/{}".format(self.x[2], self.x[3]))
             self.x[0] = A[0, 0]*self.x[0] + A[0, 1]*self.x[1] + A[0, 2]
             self.x[1] = A[1, 0]*self.x[0] + A[1, 1]*self.x[1] + A[1, 2]
+
+            a = np.array([self.x[0] - (self.x[2] / 2), self.x[1]])
+            a[0] = A[0, 0]*a[0] + A[0, 1]*a[1] + A[0, 2]
+            a[1] = A[1, 0]*a[0] + A[1, 1]*a[1] + A[1, 2]
+            b = np.array([self.x[0] + (self.x[2] / 2), self.x[1]])
+            b[0] = A[0, 0]*b[0] + A[0, 1]*b[1] + A[0, 2]
+            b[1] = A[1, 0]*b[0] + A[1, 1]*b[1] + A[1, 2]
+            c = np.array([self.x[0], self.x[1] - (self.x[3] / 2)])
+            c[0] = A[0, 0]*c[0] + A[0, 1]*c[1] + A[0, 2]
+            c[1] = A[1, 0]*c[0] + A[1, 1]*c[1] + A[1, 2]
+            d = np.array([self.x[0], self.x[1] + (self.x[3] / 2)])
+            d[0] = A[0, 0]*d[0] + A[0, 1]*d[1] + A[0, 2]
+            d[1] = A[1, 0]*d[0] + A[1, 1]*d[1] + A[1, 2]
+
+            self.x[2] = b[0] - a[0]
+            self.x[3] = d[1] - c[1]
+
             self.P = np.dot(np.dot(self.A, self.P), self.A.T) + self.Q
         elif self.transform == 'homography':
             # Convert the pixel coordinates to homogeneous coordinates
@@ -87,7 +85,7 @@ class KalmanFilter():
         return self.x
 
     def get_state(self):
-        return (self.x[0], self.x[1], self.x[4], self.x[5])
+        return (self.x[0], self.x[1], self.x[2], self.x[3])
 
 
 def convert_bbox_to_meas(det):
