@@ -5,8 +5,8 @@ from tracker.kalmanFilter import KalmanFilter
 
 
 def meas_to_mot(meas):
-    width = meas[4]
-    height = meas[5]
+    width = meas[2]
+    height = meas[3]
     x_left = meas[0] - (width/2)
     y_top = meas[1] - (height/2)
     return (x_left, y_top, width, height)
