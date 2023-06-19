@@ -33,7 +33,6 @@ def main(opt):
 
     # If visualizer, initialize visualizer
     if opt.visualize:
-        cv2.namedWindow("AgriSORT", cv2.WINDOW_NORMAL)
         visualizer = Visualizer()
 
     # Create folder to save results
@@ -57,9 +56,8 @@ def main(opt):
             Aff = tracker.camera_motion_computation(prev_image, gray_image)
             prev_image = gray_image.copy()
             c_time = (time.time() - c_start) * 1000
-
             t_start = time.time()
-            tracker.update_tracks(pred.xyxy[0].cpu().detach().numpy(), Aff)
+            tracker.update_tracks(pred.xyxy[0].cpu().detach().numpy(), Aff, frame)
             t_time = (time.time() - t_start) * 1000
             for track in tracker.tracks:
                 if visualizer and track.display:
@@ -69,7 +67,7 @@ def main(opt):
                     temp = str(mot[0]) + ', ' + str(mot[1]) + ', ' + str(mot[2]) + ', ' + str(mot[3])
                     f.write(str(i) + ', ' + str(track.id) + ', ' + temp + ', -1, -1, -1, -1' + '\n')
             if visualizer:
-                visualizer.display_image(frame, 0)
+                visualizer.display_image(frame, 1)
             # Terminal output
             print("Frame {}/{} || Detections {} ({:.2f} ms) || Camera Correction ({:.2f} ms) || Tracking {} ({:.2f} ms)".format(
                 i, dataset.len, int(len(pred.xyxy[0])), d_time, c_time, len(tracker.tracks), t_time))

@@ -41,21 +41,21 @@ class KalmanFilter():
             self.x[0] = A[0, 0]*self.x[0] + A[0, 1]*self.x[1] + A[0, 2]
             self.x[1] = A[1, 0]*self.x[0] + A[1, 1]*self.x[1] + A[1, 2]
 
-            a = np.array([self.x[0] - (self.x[2] / 2), self.x[1]])
-            a[0] = A[0, 0]*a[0] + A[0, 1]*a[1] + A[0, 2]
-            a[1] = A[1, 0]*a[0] + A[1, 1]*a[1] + A[1, 2]
-            b = np.array([self.x[0] + (self.x[2] / 2), self.x[1]])
-            b[0] = A[0, 0]*b[0] + A[0, 1]*b[1] + A[0, 2]
-            b[1] = A[1, 0]*b[0] + A[1, 1]*b[1] + A[1, 2]
-            c = np.array([self.x[0], self.x[1] - (self.x[3] / 2)])
-            c[0] = A[0, 0]*c[0] + A[0, 1]*c[1] + A[0, 2]
-            c[1] = A[1, 0]*c[0] + A[1, 1]*c[1] + A[1, 2]
-            d = np.array([self.x[0], self.x[1] + (self.x[3] / 2)])
-            d[0] = A[0, 0]*d[0] + A[0, 1]*d[1] + A[0, 2]
-            d[1] = A[1, 0]*d[0] + A[1, 1]*d[1] + A[1, 2]
+            # a = np.array([self.x[0] - (self.x[2] / 2), self.x[1]])
+            # a[0] = A[0, 0]*a[0] + A[0, 1]*a[1] + A[0, 2]
+            # a[1] = A[1, 0]*a[0] + A[1, 1]*a[1] + A[1, 2]
+            # b = np.array([self.x[0] + (self.x[2] / 2), self.x[1]])
+            # b[0] = A[0, 0]*b[0] + A[0, 1]*b[1] + A[0, 2]
+            # b[1] = A[1, 0]*b[0] + A[1, 1]*b[1] + A[1, 2]
+            # c = np.array([self.x[0], self.x[1] - (self.x[3] / 2)])
+            # c[0] = A[0, 0]*c[0] + A[0, 1]*c[1] + A[0, 2]
+            # c[1] = A[1, 0]*c[0] + A[1, 1]*c[1] + A[1, 2]
+            # d = np.array([self.x[0], self.x[1] + (self.x[3] / 2)])
+            # d[0] = A[0, 0]*d[0] + A[0, 1]*d[1] + A[0, 2]
+            # d[1] = A[1, 0]*d[0] + A[1, 1]*d[1] + A[1, 2]
 
-            self.x[2] = b[0] - a[0]
-            self.x[3] = d[1] - c[1]
+            # self.x[2] = b[0] - a[0]
+            # self.x[3] = d[1] - c[1]
 
             self.P = np.dot(np.dot(self.A, self.P), self.A.T) + self.Q
         elif self.transform == 'homography':
