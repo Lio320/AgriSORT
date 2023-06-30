@@ -188,9 +188,9 @@ class Tracker():
             track.predict(motion)
             # TO DISPLAY PREDICTION PHASE
             # if track.display:
-            bbox = meas_to_bbox(track.get_state())
-            cv2.rectangle(image, (int(bbox[0]), int(bbox[1])), (int(bbox[2]), int(bbox[3])), (0, 255, 0), 2)
-            cv2.putText(image, str(track.id), (int(bbox[0]), int(bbox[3])), cv2.FONT_HERSHEY_COMPLEX, 2, (0, 255, 0), 2)
+            # bbox = meas_to_bbox(track.get_state())
+            # cv2.rectangle(image, (int(bbox[0]), int(bbox[1])), (int(bbox[2]), int(bbox[3])), (0, 255, 0), 2)
+            # cv2.putText(image, str(track.id), (int(bbox[0]), int(bbox[3])), cv2.FONT_HERSHEY_COMPLEX, 2, (0, 255, 0), 2)
 
         # ASSOCIATION PHASE ######
         # Associate predicted tracks with measurements, update associated ones, generates new ones and only predict not associated ones for x frames
@@ -205,7 +205,7 @@ class Tracker():
             self.tracks[i].display = True
 
         for i in non_ass_meas:
-            self.add_track(1, bbox_to_meas(detections[i]), 0.1, 0.001)
+            self.add_track(1, bbox_to_meas(detections[i]), 0.05, 0.00625)
 
         for i in non_ass_tracks:
             self.tracks[i].last_seen += 1
@@ -222,6 +222,6 @@ class Tracker():
             if track.last_seen > 4:
                 track.display = False
                 # print("Hidden track", track.id)
-            if track.last_seen == 20:
+            if track.last_seen == 10:
                 self.remove_track(track)
                 # print("Removed track", track.id)
