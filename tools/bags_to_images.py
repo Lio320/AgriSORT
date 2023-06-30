@@ -10,11 +10,11 @@ def parse_opt():
 
 
 def main(opt):
-    bag_name = "20220907_154427.bag"
+    bag_name = "2023-06-26-10-59-15.bag"
     path = "./tools/" + bag_name
     image_topic = "/device_0/sensor_1/Color_0/image/data"
     bag = rosbag.Bag(path)
-    save_path = "./tools/20220907_154427/"
+    save_path = "./tools/single_grape/"
     if not os.path.exists(save_path):
         os.mkdir(save_path)
     for i, (topic, msg, t) in enumerate(bag.read_messages(topics=[image_topic])):
