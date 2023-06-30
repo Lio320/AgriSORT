@@ -18,7 +18,7 @@ def parse_opt():
     parser.add_argument('--iou-thres', type=float, default=0.5, help='NMS IoU threshold')
     parser.add_argument('--features', type=str, default="optical_flow", help='Features for camera motion compensation (ORB, optical flow, ...)')
     parser.add_argument('--transform', type=str, default="affine", help='Tranformation for estimation of camera motion')
-    parser.add_argument('-v', '--visualize', type=bool, default=True, help='Enable or disable real-time visualization')
+    parser.add_argument('-v', '--visualize', type=bool, default=False, help='Enable or disable real-time visualization')
     opt = parser.parse_args()
     return opt
 
@@ -32,8 +32,8 @@ def main(opt):
     tracker = Tracker(features=opt.features, transform=opt.transform)
 
     # If visualizer, initialize visualizer
+    print(opt.visualize)
     if opt.visualize:
-        cv2.namedWindow("AgriSORT", cv2.WINDOW_NORMAL)
         visualizer = Visualizer()
 
     # Create folder to save results
@@ -50,25 +50,24 @@ def main(opt):
         if i == 1:
             for bbox in pred.xyxy[0]:
                 prev_image = gray_image
-                # Generate one tracker for each detected bounding boxqq
-                tracker.add_track(1, bbox_to_meas(bbox.cpu().detach().numpy()), 0.1, 0.001)
+                # Generate one tracker for each detected bounding box
+                tracker.add_track(1, bbox_to_meas(bbox.cpu().detach().numpy()), 0.05, 0.00625)
         else:
             c_start = time.time()
             Aff = tracker.camera_motion_computation(prev_image, gray_image)
-            prev_image = gray_image.copy()
             c_time = (time.time() - c_start) * 1000
-
+            prev_image = gray_image.copy()
             t_start = time.time()
-            tracker.update_tracks(pred.xyxy[0].cpu().detach().numpy(), Aff)
+            tracker.update_tracks(pred.xyxy[0].cpu().detach().numpy(), Aff, frame)
             t_time = (time.time() - t_start) * 1000
             for track in tracker.tracks:
-                if visualizer and track.display:
+                if opt.visualize and track.display:
                     frame = visualizer.draw_track(track, frame)
                 with open(folder_path + "/agriSORT.txt", 'a') as f:
                     mot = meas_to_mot(track.x)
                     temp = str(mot[0]) + ', ' + str(mot[1]) + ', ' + str(mot[2]) + ', ' + str(mot[3])
-                    f.write(str(i) + ', ' + str(track.id) + ', ' + temp + ', -1, -1, -1, -1' + '\n')
-            if visualizer:
+                    f.write(str(i-1) + ', ' + str(track.id) + ', ' + temp + ', -1, -1, -1, -1' + '\n')
+            if opt.visualize:
                 visualizer.display_image(frame, 0)
             # Terminal output
             print("Frame {}/{} || Detections {} ({:.2f} ms) || Camera Correction ({:.2f} ms) || Tracking {} ({:.2f} ms)".format(

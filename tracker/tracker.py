@@ -5,8 +5,8 @@ from tracker.kalmanFilter import KalmanFilter
 
 
 def meas_to_mot(meas):
-    width = meas[4]
-    height = meas[5]
+    width = meas[2]
+    height = meas[3]
     x_left = meas[0] - (width/2)
     y_top = meas[1] - (height/2)
     return (x_left, y_top, width, height)
@@ -182,13 +182,13 @@ class Tracker():
         #       .format(associated_tracks, associated_measurements, non_associated_tracks, non_associated_measurements))
         return associated_tracks, associated_measurements, non_associated_tracks, non_associated_measurements
 
-    def update_tracks(self, detections, motion):
+    def update_tracks(self, detections, motion, image):
         # PREDICTION PHASE
         for track in self.tracks:
             track.predict(motion)
             # TO DISPLAY PREDICTION PHASE
             # if track.display:
-            # bbox = convert_meas_to_bbox(track.get_state())
+            # bbox = meas_to_bbox(track.get_state())
             # cv2.rectangle(image, (int(bbox[0]), int(bbox[1])), (int(bbox[2]), int(bbox[3])), (0, 255, 0), 2)
             # cv2.putText(image, str(track.id), (int(bbox[0]), int(bbox[3])), cv2.FONT_HERSHEY_COMPLEX, 2, (0, 255, 0), 2)
 
@@ -205,7 +205,7 @@ class Tracker():
             self.tracks[i].display = True
 
         for i in non_ass_meas:
-            self.add_track(1, bbox_to_meas(detections[i]), 0.1, 0.001)
+            self.add_track(1, bbox_to_meas(detections[i]), 0.05, 0.00625)
 
         for i in non_ass_tracks:
             self.tracks[i].last_seen += 1
