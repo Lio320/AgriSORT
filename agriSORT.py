@@ -11,9 +11,9 @@ def parse_opt():
     # Create an ArgumentParser object
     parser = argparse.ArgumentParser(description='Example script to demonstrate command line options.')
     # Add options
-    parser.add_argument('-s', '--source', type=str, default='data/Grapes_001/', help='Source of files (dir, file, video, ...)')
+    parser.add_argument('-s', '--source', type=str, default='Dataset/CloseUp1/', help='Source of files (dir, file, video, ...)')
     parser.add_argument('-o', '--output', type=str, default='runs/', help='Output file path')
-    parser.add_argument('-w', '--weights', type=str, default='./weights/best.pt', help='Weights of YOLOv5 detector')
+    parser.add_argument('-w', '--weights', type=str, default='./Detection Weights/best.pt', help='Weights of YOLOv5 detector')
     parser.add_argument('--conf-thres', type=float, default=0.3, help='confidence threshold')
     parser.add_argument('--iou-thres', type=float, default=0.5, help='NMS IoU threshold')
     parser.add_argument('--features', type=str, default="optical_flow", help='Features for camera motion compensation (ORB, optical flow, ...)')
