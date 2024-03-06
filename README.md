@@ -3,7 +3,7 @@
 ### [Paper](https://arxiv.org/abs/2309.13393) | [Dataset](https://drive.google.com/drive/folders/1sbsUwCtGQtA58cLVP5sd37tjjkMFCh05?usp=drive_link) | [Weights](https://drive.google.com/drive/folders/1Kl3srt2J0u48Gyx6M1YvrqMnCTNrQz-W?usp=drive_link) | [Video](video_link)
 
 <p>
-<img src="./Figures/Logos/canopies.svg"  height = "175" />
+<img src="./Figures/Logos/logo_smart.png"  height = "175" />
 <img src="./Figures/Logos/sapienza.png" height = "175" />
 </p>
 
