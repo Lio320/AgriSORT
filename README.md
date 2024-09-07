@@ -1,6 +1,6 @@
 # <strong> AgriSORT: A Simple Online Real-time Tracking-by-Detection framework for robotics in precision agriculture </strong> 
 
-### [Paper](https://arxiv.org/abs/2309.13393) | [Dataset](https://drive.google.com/drive/folders/1sbsUwCtGQtA58cLVP5sd37tjjkMFCh05?usp=drive_link) | [Weights](https://drive.google.com/drive/folders/1Kl3srt2J0u48Gyx6M1YvrqMnCTNrQz-W?usp=drive_link) | [Video](video_link)
+### [Paper](https://arxiv.org/abs/2309.13393) | [Dataset](https://drive.google.com/drive/folders/1sbsUwCtGQtA58cLVP5sd37tjjkMFCh05?usp=drive_link) | [Weights](https://drive.google.com/drive/folders/1Kl3srt2J0u48Gyx6M1YvrqMnCTNrQz-W?usp=drive_link) | [Video](https://drive.google.com/file/d/1ziVsBV7nODg5pdV-lGBt_XO51lqzvUQ7/view?usp=sharing)
 
 <p>
 <img src="./Figures/Logos/logo_smart.png"  height = "175" />
