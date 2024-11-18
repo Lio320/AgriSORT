@@ -37,7 +37,7 @@ class KalmanFilter():
         # self.x = np.dot(self.A, self.x)
         # self.x[0:2] += [A[0, 2], A[1, 2]]
         if self.transform == 'affine':
-            print("OLD WIDTH/HEIGHT: {}/{}".format(self.x[2], self.x[3]))
+            # print("OLD WIDTH/HEIGHT: {}/{}".format(self.x[2], self.x[3]))
             self.x[0] = A[0, 0]*self.x[0] + A[0, 1]*self.x[1] + A[0, 2]
             self.x[1] = A[1, 0]*self.x[0] + A[1, 1]*self.x[1] + A[1, 2]
 
