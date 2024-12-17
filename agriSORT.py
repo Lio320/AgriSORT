@@ -69,7 +69,7 @@ def main(opt):
                     f.write(str(i-1) + ', ' + str(track.id) + ', ' + temp + ', -1, -1, -1, -1' + '\n')
             if opt.visualize:
                 visualizer.display_image(frame, 0)
-                cv2.imwrite("./GIF/" + str(i).zfill(5) + ".jpg", frame)
+                #cv2.imwrite("./GIF/" + str(i).zfill(5) + ".jpg", frame)
             # Terminal output
             print("Frame {}/{} || Detections {} ({:.2f} ms) || Camera Correction ({:.2f} ms) || Tracking {} ({:.2f} ms)".format(
                 i, dataset.len, int(len(pred.xyxy[0])), d_time, c_time, len(tracker.tracks), t_time))
