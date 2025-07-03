@@ -99,18 +99,66 @@ class Tracker():
 
     def camera_motion_computation(self, prev_img, curr_img):
         if self.features == "orb":
+            # # CREATE A NARROW MASK to isolate the rigid support trough ---
+            h, w = prev_img.shape
+            mask = np.zeros((h, w), dtype=np.uint8)
+
+            # # Define the exact pixel boundaries for our horizontal strip
+            # top_boundary = 470
+            # bottom_boundary = 590
+            
+            # # Set this specific strip to white (255), making it the only search area
+            # mask[top_boundary:bottom_boundary, :] = 255
+            # # --- END OF MASKING ---
+            mask[:, :] = 255
             # Compute keypoints and descriptors
-            prevKeypoints, prevDescriptors = self.orb.detectAndCompute(prev_img, None)
-            currKeypoints, currDescriptors = self.orb.detectAndCompute(curr_img, None)
+            prevKeypoints, prevDescriptors = self.orb.detectAndCompute(prev_img, mask)
+            currKeypoints, currDescriptors = self.orb.detectAndCompute(curr_img, mask)
             matches = self.matcher.match(prevDescriptors, currDescriptors)
             # Sort matches by distance
             matches = sorted(matches, key=lambda x: x.distance)
             matches = matches[:50]
             prev_pts = np.float32([prevKeypoints[m.queryIdx].pt for m in matches]).reshape(-1, 1, 2)
             curr_pts = np.float32([currKeypoints[m.trainIdx].pt for m in matches]).reshape(-1, 1, 2)
+            ########## NEW AGGRESSIVE CONSENSUS CHECK ##########
+            # prev_pts = np.float32([prevKeypoints[m.queryIdx].pt for m in matches])
+            # curr_pts = np.float32([currKeypoints[m.trainIdx].pt for m in matches])
+            
+            # # This check is important
+            # if len(prev_pts) < 5:
+            #     return np.eye(2, 3) # Not enough points, assume no motion
+                
+            # # --- EXPLICIT OUTLIER FILTERING ---
+            # # This block will now work correctly with the 2D arrays
+            # displacements = curr_pts - prev_pts
+            # median_dx = np.median(displacements[:, 0]) # Gets the first column (all dx)
+            # median_dy = np.median(displacements[:, 1]) # Gets the second column (all dy)
+
+            # errors = np.linalg.norm(displacements - np.array([median_dx, median_dy]), axis=1)
+            # inlier_threshold = 5.0
+            # inlier_mask = errors < inlier_threshold
+            
+            # prev_pts = prev_pts[inlier_mask]
+            # curr_pts = curr_pts[inlier_mask]
+
+            # print(f"Motion Filtering: Started with {len(matches)} points, kept {len(prev_pts)} inliers.")
         if self.features == "optical_flow":
             # Define the features to track using the Shi-Tomasi corner detector
-            prev_pts = cv2.goodFeaturesToTrack(prev_img, maxCorners=200, qualityLevel=0.01, minDistance=10)
+            # --- SOLUTION: CREATE A MASK TO IGNORE THE NOISY GROUND ---
+            # Get the height and width of the image            
+            h, w = prev_img.shape
+            mask = np.zeros((h, w), dtype=np.uint8)
+
+            # Define the top and bottom boundaries of the horizontal band
+            # This will select the middle 20% of the image (from 40% down to 60% down)
+            top_boundary = int(h * 0.40)
+            bottom_boundary = int(h * 0.60)
+            
+            # Make the "good" area white
+            mask[top_boundary:bottom_boundary, :] = 255
+
+            # --- END OF MASKING SOLUTION ---
+            prev_pts = cv2.goodFeaturesToTrack(prev_img, maxCorners=200, qualityLevel=0.5, minDistance=10, mask=mask)
             # Compute the optical flow using the Lucas-Kanade method
             curr_pts, status, err = cv2.calcOpticalFlowPyrLK(prev_img, curr_img, prev_pts, None, **self.lk_params)
             # Select only the points that have a good optical flow estimation
@@ -118,7 +166,25 @@ class Tracker():
             curr_pts = curr_pts[status == 1]
         if self.transform == 'affine':
             # Estimate the affine transformation matrix
-            A, _ = cv2.estimateAffine2D(prev_pts, curr_pts, method=cv2.RANSAC, ransacReprojThreshold=5.0)
+            # --- START VISUALIZATION DEBUG ---
+            # Create a copy of the current frame to draw on
+            vis_image = curr_img.copy()
+            if len(vis_image.shape) == 2: # If the image is grayscale
+                vis_image = cv2.cvtColor(vis_image, cv2.COLOR_GRAY2BGR)
+
+            # Draw the optical flow vectors
+            for i, (new, old) in enumerate(zip(curr_pts, prev_pts)):
+                a, b = new.ravel().astype(int)
+                c, d = old.ravel().astype(int)
+                # Draw the line from the old point to the new point
+                cv2.line(vis_image, (a, b), (c, d), (0, 255, 0), 2)
+                # Draw a circle at the new position
+                cv2.circle(vis_image, (a, b), 5, (0, 0, 255), -1)
+
+            cv2.imshow("Optical Flow Vectors", vis_image)
+            cv2.waitKey(1) # Use waitKey(1) for video, or waitKey(0) to pause on each frame
+            # --- END VISUALIZATION DEBUG ---
+            A, _ = cv2.estimateAffine2D(prev_pts, curr_pts, method=cv2.RANSAC, ransacReprojThreshold=3.0)
             return A
         elif self.transform == 'homography':
             # Estimate the homography
@@ -128,7 +194,7 @@ class Tracker():
     def ransac(kp1, kp2, good, mp1, mp2, MIN_MATCH_COUNT=2, inlier_threshold=10.0):
         pass
 
-    def associate_tracks(self, measurements):
+    def associate_tracks(self, measurements, image):
         associated_tracks = []
         associated_measurements = []
         non_associated_tracks = []
@@ -136,7 +202,7 @@ class Tracker():
 
         temp_matrix = compute_iou(self.tracks, measurements)
 
-        # TO DISPLAY MEASUREMENTS ######
+        # # TO DISPLAY MEASUREMENTS ######
         # for i, bbox in enumerate(measurements):
         #     cv2.rectangle(image, (int(bbox[0]), int(bbox[1])), (int(bbox[2]), int(bbox[3])), (255, 0, 0), 4)
         #     cv2.putText(image, str(i), (int(bbox[0]), int(bbox[1])), cv2.FONT_HERSHEY_COMPLEX, 3, (255, 0, 0), 2)
@@ -186,8 +252,7 @@ class Tracker():
         # PREDICTION PHASE
         for track in self.tracks:
             track.predict(motion)
-            # TO DISPLAY PREDICTION PHASE
-            # if track.display:
+            # # TO DISPLAY PREDICTION PHASE
             # bbox = meas_to_bbox(track.get_state())
             # cv2.rectangle(image, (int(bbox[0]), int(bbox[1])), (int(bbox[2]), int(bbox[3])), (0, 255, 0), 2)
             # cv2.putText(image, str(track.id), (int(bbox[0]), int(bbox[3])), cv2.FONT_HERSHEY_COMPLEX, 2, (0, 255, 0), 2)
@@ -195,7 +260,19 @@ class Tracker():
         # ASSOCIATION PHASE ######
         # Associate predicted tracks with measurements, update associated ones, generates new ones and only predict not associated ones for x frames
         # Then delete the non associated if not associated for x frames. Use IOU to associate bboxes
-        ass_tracks, ass_meas, non_ass_tracks, non_ass_meas = self.associate_tracks(detections)
+
+        ####### FILTER DETECTIONS ######
+        new_dets = []
+        for det in detections:
+            w = det[2] - det[0]
+            h = det[3] - det[1]
+            area = w*h
+            if area > 800.0:
+                new_dets.append(det)
+
+        detections = new_dets
+
+        ass_tracks, ass_meas, non_ass_tracks, non_ass_meas = self.associate_tracks(detections, image)
 
         # UPDATE PHASE ######
         for i, j in zip(ass_tracks, ass_meas):
@@ -213,7 +290,7 @@ class Tracker():
         for i in ass_tracks:
             if self.tracks[i].temp:
                 self.tracks[i].age += 1
-            if self.tracks[i].age > 2:
+            if self.tracks[i].age > 0:
                 self.tracks[i].temp = False
 
         for track in reversed(self.tracks):

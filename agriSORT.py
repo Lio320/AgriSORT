@@ -1,5 +1,5 @@
 import cv2
-import torch
+from ultralytics import YOLO
 import argparse
 from tracker.tracker import Tracker, bbox_to_meas, meas_to_mot
 from tools.visualizer import Visualizer
@@ -11,12 +11,12 @@ def parse_opt():
     # Create an ArgumentParser object
     parser = argparse.ArgumentParser(description='Example script to demonstrate command line options.')
     # Add options
-    parser.add_argument('-s', '--source', type=str, default='Dataset/CloseUp1/', help='Source of files (dir, file, video, ...)')
+    parser.add_argument('-s', '--source', type=str, default='./Dataset/Strawberry/output_30fps1/left/', help='Source of files (dir, file, video, ...)')
     parser.add_argument('-o', '--output', type=str, default='runs/', help='Output file path')
     parser.add_argument('-w', '--weights', type=str, default='./Detection Weights/best.pt', help='Weights of YOLOv5 detector')
     parser.add_argument('--conf-thres', type=float, default=0.3, help='confidence threshold')
-    parser.add_argument('--iou-thres', type=float, default=0.5, help='NMS IoU threshold')
-    parser.add_argument('--features', type=str, default="optical_flow", help='Features for camera motion compensation (ORB, optical flow, ...)')
+    parser.add_argument('--iou-thres', type=float, default=0.9, help='NMS IoU threshold')
+    parser.add_argument('--features', type=str, default="orb", help='Features for camera motion compensation (ORB, optical flow, ...)')
     parser.add_argument('--transform', type=str, default="affine", help='Tranformation for estimation of camera motion')
     parser.add_argument('-v', '--visualize', type=bool, default=True, help='Enable or disable real-time visualization')
     opt = parser.parse_args()
@@ -24,7 +24,7 @@ def parse_opt():
 
 
 def main(opt):
-    model = torch.hub.load('./yolov5', 'custom', path=opt.weights, source="local")
+    model = YOLO(opt.weights)
     model.conf = opt.conf_thres
     model.iou = opt.iou_thres
 
@@ -45,11 +45,12 @@ def main(opt):
     for i, frame in dataset:
         gray_image = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
         d_start = time.time()
-        pred = model(gray_image, size=1280)
+        pred = model(frame, imgsz=1280)
+        visualizer.display_image(frame, 0)
         d_time = (time.time() - d_start) * 1000
         if i == 1:
-            for bbox in pred.xyxy[0]:
-                prev_image = gray_image
+            prev_image = gray_image
+            for bbox in pred[0].boxes.xyxy:
                 # Generate one tracker for each detected bounding box
                 tracker.add_track(1, bbox_to_meas(bbox.cpu().detach().numpy()), 0.05, 0.00625)
         else:
@@ -58,7 +59,7 @@ def main(opt):
             c_time = (time.time() - c_start) * 1000
             prev_image = gray_image.copy()
             t_start = time.time()
-            tracker.update_tracks(pred.xyxy[0].cpu().detach().numpy(), Aff, frame)
+            tracker.update_tracks(pred[0].boxes.xyxy.cpu().detach().numpy(), Aff, frame)
             t_time = (time.time() - t_start) * 1000
             for track in tracker.tracks:
                 if opt.visualize and track.display:
@@ -69,10 +70,10 @@ def main(opt):
                     f.write(str(i-1) + ', ' + str(track.id) + ', ' + temp + ', -1, -1, -1, -1' + '\n')
             if opt.visualize:
                 visualizer.display_image(frame, 0)
-                #cv2.imwrite("./GIF/" + str(i).zfill(5) + ".jpg", frame)
+                cv2.imwrite("./GIF/" + str(i).zfill(5) + ".jpg", frame)
             # Terminal output
             print("Frame {}/{} || Detections {} ({:.2f} ms) || Camera Correction ({:.2f} ms) || Tracking {} ({:.2f} ms)".format(
-                i, dataset.len, int(len(pred.xyxy[0])), d_time, c_time, len(tracker.tracks), t_time))
+                i, dataset.len, int(len(pred[0].boxes.xyxy)), d_time, c_time, len(tracker.tracks), t_time))
 
 
 if __name__ == "__main__":

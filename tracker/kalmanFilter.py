@@ -37,25 +37,16 @@ class KalmanFilter():
         # self.x = np.dot(self.A, self.x)
         # self.x[0:2] += [A[0, 2], A[1, 2]]
         if self.transform == 'affine':
-            print("OLD WIDTH/HEIGHT: {}/{}".format(self.x[2], self.x[3]))
-            self.x[0] = A[0, 0]*self.x[0] + A[0, 1]*self.x[1] + A[0, 2]
-            self.x[1] = A[1, 0]*self.x[0] + A[1, 1]*self.x[1] + A[1, 2]
+            # self.x[0] = A[0, 0]*self.x[0] + A[0, 1]*self.x[1] + A[0, 2]
+            # self.x[1] = A[1, 0]*self.x[0] + A[1, 1]*self.x[1] + A[1, 2]
 
-            # a = np.array([self.x[0] - (self.x[2] / 2), self.x[1]])
-            # a[0] = A[0, 0]*a[0] + A[0, 1]*a[1] + A[0, 2]
-            # a[1] = A[1, 0]*a[0] + A[1, 1]*a[1] + A[1, 2]
-            # b = np.array([self.x[0] + (self.x[2] / 2), self.x[1]])
-            # b[0] = A[0, 0]*b[0] + A[0, 1]*b[1] + A[0, 2]
-            # b[1] = A[1, 0]*b[0] + A[1, 1]*b[1] + A[1, 2]
-            # c = np.array([self.x[0], self.x[1] - (self.x[3] / 2)])
-            # c[0] = A[0, 0]*c[0] + A[0, 1]*c[1] + A[0, 2]
-            # c[1] = A[1, 0]*c[0] + A[1, 1]*c[1] + A[1, 2]
-            # d = np.array([self.x[0], self.x[1] + (self.x[3] / 2)])
-            # d[0] = A[0, 0]*d[0] + A[0, 1]*d[1] + A[0, 2]
-            # d[1] = A[1, 0]*d[0] + A[1, 1]*d[1] + A[1, 2]
-
-            # self.x[2] = b[0] - a[0]
-            # self.x[3] = d[1] - c[1]
+            # Store the original state before updating
+            old_x = self.x[0]
+            old_y = self.x[1]
+            
+            # Calculate new position using ONLY old values
+            self.x[0] = A[0, 0]*old_x + A[0, 1]*old_y + A[0, 2]
+            self.x[1] = A[1, 0]*old_x + A[1, 1]*old_y + A[1, 2]
 
             self.P = np.dot(np.dot(self.A, self.P), self.A.T) + self.Q
         elif self.transform == 'homography':
@@ -73,9 +64,6 @@ class KalmanFilter():
             self.x[1] = int(round(y2 / w))
 
             self.P = np.dot(np.dot(self.A, self.P), self.A.T) + self.Q
-
-            # Print the pixel coordinates of the projected point in the second image
-            print(self.x)
         return self.x
 
     def update(self, z):
